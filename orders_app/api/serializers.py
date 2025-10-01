@@ -3,7 +3,12 @@ from django.shortcuts import get_object_or_404
 from orders_app.models import Order
 from offers_app.models import OfferDetail
 
+
 class OrderSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for Order model.
+    Returns all order fields.
+    """
     class Meta:
         model = Order
         fields = [
@@ -22,7 +27,12 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+
 class OrderCreateSerializer(serializers.Serializer):
+    """
+    Serializer for creating a new Order from an OfferDetail.
+    Validates that only 'customer' users can create orders.
+    """
     offer_detail_id = serializers.IntegerField()
 
     def validate(self, attrs):
@@ -49,7 +59,11 @@ class OrderCreateSerializer(serializers.Serializer):
         )
         return order
 
+
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating only the status field of an Order.
+    """
     class Meta:
         model = Order
         fields = ["status"]

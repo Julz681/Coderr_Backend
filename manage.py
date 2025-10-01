@@ -5,7 +5,10 @@ import sys
 
 
 def main():
-    """Run administrative tasks."""
+    """
+    Entry point for Django's command-line utility.
+    Sets the default settings module and executes management commands.
+    """
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
     try:
         from django.core.management import execute_from_command_line

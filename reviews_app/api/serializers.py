@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from reviews_app.models import Review
 
+
 class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Review model.
+    Handles validation rules and ensures reviewer is set automatically.
+    """
     class Meta:
         model = Review
         fields = [

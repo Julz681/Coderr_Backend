@@ -1,7 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class UserProfile(models.Model):
+    """
+    Model representing an extended user profile.
+    Differentiates between customer and business accounts
+    and stores additional profile information.
+    """
     TYPE_CHOICES = (
         ("customer", "Customer"),
         ("business", "Business"),

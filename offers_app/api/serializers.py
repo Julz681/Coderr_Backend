@@ -3,7 +3,12 @@ from django.urls import reverse
 from django.db.models import Min
 from offers_app.models import Offer, OfferDetail
 
+
 def _user_details_for(offer: Offer) -> dict:
+    """
+    Helper function that extracts basic user profile information
+    for a given offer.
+    """
     prof = getattr(offer.user, "profile", None)
     if not prof:
         return {"first_name": "", "last_name": "", "username": offer.user.username}
@@ -13,7 +18,12 @@ def _user_details_for(offer: Offer) -> dict:
         "username": offer.user.username,
     }
 
+
 class OfferDetailReadLinkSerializer(serializers.ModelSerializer):
+    """
+    Serializer for OfferDetail that returns only the ID
+    and a generated URL link to the detail.
+    """
     url = serializers.SerializerMethodField()
 
     class Meta:
@@ -24,7 +34,11 @@ class OfferDetailReadLinkSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return request.build_absolute_uri(reverse("offerdetail-detail", args=[obj.id]))
 
+
 class OfferDetailSerializer(serializers.ModelSerializer):
+    """
+    Full serializer for OfferDetail, used for detailed read operations.
+    """
     class Meta:
         model = OfferDetail
         fields = [
@@ -38,7 +52,13 @@ class OfferDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ("id",)
 
+
 class OfferListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Offer list views.
+    Includes related details, minimum price, minimum delivery time,
+    and user profile data.
+    """
     details = OfferDetailReadLinkSerializer(many=True, read_only=True)
     min_price = serializers.SerializerMethodField()
     min_delivery_time = serializers.SerializerMethodField()
@@ -69,43 +89,52 @@ class OfferListSerializer(serializers.ModelSerializer):
     def get_user_details(self, obj):
         return _user_details_for(obj)
 
+
+class OfferDetailItemSerializer(serializers.ModelSerializer):
+    """
+    Slim serializer for OfferDetail, used when creating or updating offers.
+    Excludes the 'id' field because details are newly created or replaced.
+    """
+    class Meta:
+        model = OfferDetail
+        fields = [
+            "title",
+            "revisions",
+            "delivery_time_in_days",
+            "price",
+            "features",
+            "offer_type",
+        ]
+
+
 class OfferCreateUpdateSerializer(serializers.ModelSerializer):
-    details = OfferDetailSerializer(many=True)
+    """
+    Serializer for creating and updating Offer instances.
+    Handles nested creation and replacement of OfferDetails.
+    """
+    details = OfferDetailItemSerializer(many=True)
 
     class Meta:
         model = Offer
         fields = ["id", "title", "image", "description", "details"]
 
-    def validate_details(self, value):
-        if len(value) != 3:
-            raise serializers.ValidationError("An offer must contain exactly 3 details (basic, standard, premium)")
-        types = {d.get("offer_type") for d in value}
-        if types != {"basic", "standard", "premium"}:
-            raise serializers.ValidationError("Details must include offer_type 'basic', 'standard' and 'premium'")
-        return value
-
     def create(self, validated_data):
-        details_data = validated_data.pop("details")
-        offer = Offer.objects.create(user=self.context["request"].user, **validated_data)
-        for d in details_data:
-            OfferDetail.objects.create(offer=offer, **d)
+        details_data = validated_data.pop("details", [])
+
+        offer = Offer.objects.create(**validated_data)
+        for item in details_data:
+            OfferDetail.objects.create(offer=offer, **item)
         return offer
 
     def update(self, instance, validated_data):
         details_data = validated_data.pop("details", None)
-        for attr in ["title", "image", "description"]:
-            if attr in validated_data:
-                setattr(instance, attr, validated_data[attr])
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
+
         if details_data is not None:
-            existing = {od.offer_type: od for od in instance.details.all()}
-            for d in details_data:
-                ot = d.get("offer_type")
-                if ot not in existing:
-                    continue
-                od = existing[ot]
-                for f in ["title", "revisions", "delivery_time_in_days", "price", "features"]:
-                    if f in d:
-                        setattr(od, f, d[f])
-                od.save()
+            instance.details.all().delete()
+            for item in details_data:
+                OfferDetail.objects.create(offer=instance, **item)
+
         return instance

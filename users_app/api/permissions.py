@@ -1,6 +1,11 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
+
 class IsSelfOrReadOnly(BasePermission):
+    """
+    Permission that allows read-only access for everyone,
+    but write access only to the owner of the object.
+    """
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True

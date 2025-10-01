@@ -1,7 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Offer(models.Model):
+    """
+    Model representing an offer created by a user.
+    Contains metadata like title, image, description, and timestamps.
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="offers")
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to="offers/", blank=True, null=True)
@@ -15,7 +20,12 @@ class Offer(models.Model):
     def __str__(self):
         return f"Offer({self.id} - {self.title})"
 
+
 class OfferDetail(models.Model):
+    """
+    Model representing the detailed options of an offer.
+    Includes pricing, delivery time, revisions, features, and type.
+    """
     OFFER_TYPE_CHOICES = (
         ("basic", "Basic"),
         ("standard", "Standard"),

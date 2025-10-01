@@ -13,7 +13,12 @@ from .serializers import (
 )
 from .permissions import IsBusinessForStatusUpdate, IsStaffForDelete
 
+
 class OrderListCreateView(generics.ListCreateAPIView):
+    """
+    View for listing orders of the current user or creating new ones.
+    Customers can create orders, businesses can view their related orders.
+    """
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -33,7 +38,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
         order = serializer.save()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
+
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    View for retrieving, updating, or deleting a specific order.
+    Permissions differ depending on the action (update, delete).
+    """
     queryset = Order.objects.all()
     permission_classes = [IsAuthenticated]
 
@@ -49,7 +59,12 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [IsAuthenticated(), IsBusinessForStatusUpdate()]
         return super().get_permissions()
 
+
 class OrderCountView(APIView):
+    """
+    View for retrieving the number of in-progress orders
+    for a specific business user.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):
@@ -57,7 +72,12 @@ class OrderCountView(APIView):
         count = Order.objects.filter(business_user=user, status="in_progress").count()
         return Response({"order_count": count})
 
+
 class CompletedOrderCountView(APIView):
+    """
+    View for retrieving the number of completed orders
+    for a specific business user.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):

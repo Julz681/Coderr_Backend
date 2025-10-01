@@ -6,6 +6,12 @@ from .views import (
     CompletedOrderCountView,
 )
 
+"""
+URL configuration for orders_app API.
+Provides routes for listing/creating orders, retrieving details,
+and counting total or completed orders per business user.
+"""
+
 urlpatterns = [
     path("orders/", OrderListCreateView.as_view(), name="orders"),
     path("orders/<int:pk>/", OrderDetailView.as_view(), name="order-detail"),

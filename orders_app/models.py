@@ -1,7 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Order(models.Model):
+    """
+    Model representing an order placed by a customer
+    for a business user's offer detail.
+    Includes pricing, delivery, status, and timestamps.
+    """
     STATUS_CHOICES = (
         ("in_progress", "In Progress"),
         ("completed", "Completed"),

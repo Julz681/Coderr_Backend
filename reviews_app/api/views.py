@@ -4,7 +4,12 @@ from reviews_app.models import Review
 from .serializers import ReviewSerializer
 from .permissions import IsReviewer
 
+
 class ReviewListCreateView(generics.ListCreateAPIView):
+    """
+    View for listing all reviews or creating a new review.
+    Supports filtering by business_user/reviewer and ordering.
+    """
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ["business_user", "reviewer"]
@@ -16,7 +21,12 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
 
+
 class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    View for retrieving, updating, or deleting a specific review.
+    Only the assigned reviewer can modify or delete it.
+    """
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated, IsReviewer]

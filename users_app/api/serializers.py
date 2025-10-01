@@ -3,7 +3,12 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from users_app.models import UserProfile
 
+
 class ProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for user profiles.
+    Exposes user-related data and allows updating profile fields and email.
+    """
     username = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
@@ -46,7 +51,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 class RegistrationSerializer(serializers.Serializer):
+    """
+    Serializer for user registration.
+    Validates credentials and creates a new user with profile.
+    """
     username = serializers.CharField()
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -69,7 +79,12 @@ class RegistrationSerializer(serializers.Serializer):
         UserProfile.objects.create(user=user, type=validated_data["type"])
         return user
 
+
 class LoginSerializer(serializers.Serializer):
+    """
+    Serializer for user login.
+    Validates credentials and returns the authenticated user.
+    """
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 

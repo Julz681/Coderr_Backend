@@ -1,7 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Review(models.Model):
+    """
+    Model representing a review written by a customer for a business user.
+    Includes rating, description, and timestamps.
+    """
     business_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_reviews")
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="written_reviews")
     rating = models.PositiveIntegerField()
