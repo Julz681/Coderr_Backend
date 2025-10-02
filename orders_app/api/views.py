@@ -11,15 +11,19 @@ from .serializers import (
     OrderCreateSerializer,
     OrderStatusUpdateSerializer,
 )
-from .permissions import IsBusinessForStatusUpdate, IsStaffForDelete
+from .permissions import IsBusinessForStatusUpdate, IsStaffForDelete, IsCustomerForOrderCreate
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
     """
-    View for listing orders of the current user or creating new ones.
-    Customers can create orders, businesses can view their related orders.
+    GET: list orders where the user is either the customer or the business
+    POST: create order (customer-only, enforced via permission to return 403)
     """
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated(), IsCustomerForOrderCreate()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -28,9 +32,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
         )
 
     def get_serializer_class(self):
-        if self.request.method == "POST":
-            return OrderCreateSerializer
-        return OrderSerializer
+        return OrderCreateSerializer if self.request.method == "POST" else OrderSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -41,16 +43,15 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    View for retrieving, updating, or deleting a specific order.
-    Permissions differ depending on the action (update, delete).
+    GET: retrieve an order
+    PATCH: business owner updates status (returns full order object)
+    DELETE: staff-only
     """
     queryset = Order.objects.all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method in ["PATCH", "PUT"]:
-            return OrderStatusUpdateSerializer
-        return OrderSerializer
+        return OrderStatusUpdateSerializer if self.request.method in ["PATCH", "PUT"] else OrderSerializer
 
     def get_permissions(self):
         if self.request.method == "DELETE":
@@ -60,7 +61,8 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().get_permissions()
 
     def update(self, request, *args, **kwargs):
-        kwargs["partial"] = True  
+        """Return the full order after status update to match the docs."""
+        kwargs["partial"] = True
         return self.partial_update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
@@ -73,8 +75,8 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class OrderCountView(APIView):
     """
-    View for retrieving the number of in-progress orders
-    for a specific business user.
+    GET /api/order-count/{business_user_id}/
+    Returns the count of 'in_progress' orders for the given business user.
     """
     permission_classes = [IsAuthenticated]
 
@@ -86,8 +88,8 @@ class OrderCountView(APIView):
 
 class CompletedOrderCountView(APIView):
     """
-    View for retrieving the number of completed orders
-    for a specific business user.
+    GET /api/completed-order-count/{business_user_id}/
+    Returns the count of 'completed' orders for the given business user.
     """
     permission_classes = [IsAuthenticated]
 

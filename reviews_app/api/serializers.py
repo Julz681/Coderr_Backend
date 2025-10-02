@@ -4,9 +4,11 @@ from reviews_app.models import Review
 
 class ReviewSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Review model.
-    Handles validation rules and ensures reviewer is set automatically.
+    Serializer for listing/creating/updating reviews.
+    - 'reviewer' is set to the current user on create.
+    - Validates rating boundaries and prevents duplicate/self-reviews.
     """
+
     class Meta:
         model = Review
         fields = [
@@ -22,12 +24,16 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context["request"]
+
         if request.method == "POST":
-            prof = getattr(request.user, "profile", None)
-            if not prof or prof.type != "customer":
-                raise serializers.ValidationError("Only customers can create reviews")
+            # Prevent reviewing yourself
             if attrs["business_user"] == request.user:
                 raise serializers.ValidationError("Cannot review yourself")
+            # One review per business per reviewer
+            if Review.objects.filter(business_user=attrs["business_user"], reviewer=request.user).exists():
+                raise serializers.ValidationError("You have already reviewed this business")
+
+        # Rating must be in [1..5]
         if "rating" in attrs and not (1 <= int(attrs["rating"]) <= 5):
             raise serializers.ValidationError({"rating": "Rating must be between 1 and 5"})
         return attrs

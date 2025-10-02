@@ -6,8 +6,10 @@ from users_app.models import UserProfile
 
 class ProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer for user profiles.
-    Exposes user-related data and allows updating profile fields and email.
+    Read/Write serializer for user profiles.
+    - Exposes User id/username/email via computed fields.
+    - Ensures string fields never return null (model defaults already handle this).
+    - PATCH may also update the user's email.
     """
     username = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
@@ -41,10 +43,16 @@ class ProfileSerializer(serializers.ModelSerializer):
         return obj.user.id
 
     def update(self, instance, validated_data):
+        """
+        Update mutable profile fields. If 'email' is present in payload,
+        update the related User.email as well.
+        """
         email = self.initial_data.get("email")
         if email is not None:
             instance.user.email = email
             instance.user.save(update_fields=["email"])
+
+        # Only touch allowed fields; everything else stays as-is.
         for f in ["first_name", "last_name", "location", "tel", "description", "working_hours", "file"]:
             if f in validated_data:
                 setattr(instance, f, validated_data[f])
@@ -54,8 +62,8 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class RegistrationSerializer(serializers.Serializer):
     """
-    Serializer for user registration.
-    Validates credentials and creates a new user with profile.
+    Input serializer used by /api/registration/.
+    Creates a Django User and a paired UserProfile of the requested type.
     """
     username = serializers.CharField()
     email = serializers.EmailField()
@@ -82,8 +90,7 @@ class RegistrationSerializer(serializers.Serializer):
 
 class LoginSerializer(serializers.Serializer):
     """
-    Serializer for user login.
-    Validates credentials and returns the authenticated user.
+    Input serializer used by /api/login/ to authenticate a user.
     """
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)

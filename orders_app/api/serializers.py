@@ -6,9 +6,11 @@ from offers_app.models import OfferDetail
 
 class OrderSerializer(serializers.ModelSerializer):
     """
-    Read-only serializer for Order model.
-    Returns all order fields.
+    Read-only serializer used for listing/retrieving orders and responses.
+    Ensures price is rendered as a number in JSON.
     """
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False)
+
     class Meta:
         model = Order
         fields = [
@@ -30,16 +32,12 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderCreateSerializer(serializers.Serializer):
     """
-    Serializer for creating a new Order from an OfferDetail.
-    Validates that only 'customer' users can create orders.
+    Input serializer for POST /api/orders/.
+    Accepts an OfferDetail ID and creates an Order for the authenticated customer.
     """
     offer_detail_id = serializers.IntegerField()
 
     def validate(self, attrs):
-        user = self.context["request"].user
-        prof = getattr(user, "profile", None)
-        if not prof or prof.type != "customer":
-            raise serializers.ValidationError("Only users with type 'customer' can create orders")
         od = get_object_or_404(OfferDetail, id=attrs["offer_detail_id"])
         attrs["offer_detail"] = od
         return attrs
@@ -62,8 +60,9 @@ class OrderCreateSerializer(serializers.Serializer):
 
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating only the status field of an Order.
+    Input serializer for PATCH /api/orders/{id}/ to update the order status.
     """
+
     class Meta:
         model = Order
         fields = ["status"]

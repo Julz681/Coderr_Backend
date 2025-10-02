@@ -9,8 +9,8 @@ from .permissions import IsSelfOrReadOnly
 
 class RegistrationView(generics.GenericAPIView):
     """
-    API view for user registration.
-    Creates a new user, profile, and returns an auth token.
+    POST /api/registration/
+    Creates a new User + UserProfile and returns an auth token and user metadata.
     """
     serializer_class = RegistrationSerializer
     permission_classes = [permissions.AllowAny]
@@ -33,8 +33,8 @@ class RegistrationView(generics.GenericAPIView):
 
 class LoginView(generics.GenericAPIView):
     """
-    API view for user login.
-    Authenticates credentials and returns an auth token.
+    POST /api/login/
+    Authenticates credentials and returns auth token + user metadata.
     """
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -57,22 +57,31 @@ class LoginView(generics.GenericAPIView):
 
 class ProfileDetailView(generics.RetrieveUpdateAPIView):
     """
-    API view for retrieving or updating a user profile.
-    Only the profile owner may update their data.
+    GET /api/profile/{pk}/
+    PATCH /api/profile/{pk}/
+    - Auth required
+    - PATCH only allowed for profile owner (IsSelfOrReadOnly)
     """
     queryset = UserProfile.objects.select_related("user").all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsSelfOrReadOnly]
 
+    # pk is the related User.id
     def get_object(self):
+        """
+        Resolve by related user ID and enforce object-level permission checks
+        so non-owners receive HTTP 403 on PATCH.
+        """
         user_id = self.kwargs.get("pk")
-        return generics.get_object_or_404(self.get_queryset(), user__id=user_id)
+        obj = generics.get_object_or_404(self.get_queryset(), user__id=user_id)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class BusinessProfilesListView(generics.ListAPIView):
     """
-    API view for listing all business user profiles.
-    Authentication required. No pagination (returns plain array).
+    GET /api/profiles/business/
+    Returns an array of business profiles (no pagination, as required by the FE).
     """
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -84,8 +93,8 @@ class BusinessProfilesListView(generics.ListAPIView):
 
 class CustomerProfilesListView(generics.ListAPIView):
     """
-    API view for listing all customer user profiles.
-    Authentication required. No pagination (returns plain array).
+    GET /api/profiles/customer/
+    Returns an array of customer profiles (no pagination).
     """
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]

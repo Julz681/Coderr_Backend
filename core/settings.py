@@ -3,6 +3,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Never commit a real secret to VCS; this is fine for local dev.
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 DEBUG = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
@@ -76,7 +77,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "de-de"
-# Use UTC to match API examples with trailing 'Z' timestamps
+# Use UTC to match API examples (trailing 'Z' timestamps).
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
@@ -95,11 +96,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    # Ensure decimals are rendered as numbers (e.g., 100.0) not strings
+    # Make Decimal fields render as numbers instead of strings.
     "COERCE_DECIMAL_TO_STRING": False,
-    # Force ISO-8601 with trailing 'Z' (UTC) in responses
+    # Force ISO-8601 with trailing 'Z' (UTC) for datetimes in responses.
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S.%fZ",
 }
 
-# CORS: allow all origins for local development
+# Allow all origins for local/frontend dev. Tighten for production.
 CORS_ALLOW_ALL_ORIGINS = True
