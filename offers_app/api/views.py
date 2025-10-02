@@ -1,13 +1,16 @@
 from django.db.models import Min
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics, permissions, filters
+from rest_framework import viewsets, generics, permissions, filters, status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
 from offers_app.models import Offer, OfferDetail
 from .serializers import (
     OfferListSerializer,
     OfferCreateUpdateSerializer,
     OfferDetailSerializer,
+    OfferRetrieveSerializer,
+    OfferReadSerializer,
 )
 from .permissions import IsBusiness, IsOfferOwner
 from .filters import OfferFilter
@@ -50,8 +53,12 @@ class OfferViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.action in ["list", "retrieve"]:
+        if self.action == "list":
             return OfferListSerializer
+        if self.action == "retrieve":
+            # Matches GET /api/offers/{id}/ response shape from docs
+            return OfferRetrieveSerializer
+        # For input parsing on POST/PATCH/PUT
         return OfferCreateUpdateSerializer
 
     def get_queryset(self):
@@ -87,6 +94,35 @@ class OfferViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    # --- Custom responses to exactly match API doc payloads ---
+
+    def create(self, request, *args, **kwargs):
+        """
+        Returns newly created offer with FULL details (ids + fields),
+        as shown in the documentation for POST /api/offers/.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        offer = serializer.save(user=request.user)
+        read = OfferReadSerializer(offer, context=self.get_serializer_context())
+        return Response(read.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Returns the updated offer with FULL details,
+        matching the PATCH response in the documentation.
+        """
+        kwargs["partial"] = True  # Allow partial updates (PATCH semantics)
+        return self.partial_update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        offer = self.get_object()
+        serializer = self.get_serializer(offer, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        offer = serializer.save()
+        read = OfferReadSerializer(offer, context=self.get_serializer_context())
+        return Response(read.data, status=status.HTTP_200_OK)
 
 
 class OfferDetailRetrieveView(generics.RetrieveAPIView):

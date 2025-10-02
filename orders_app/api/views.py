@@ -59,6 +59,17 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [IsAuthenticated(), IsBusinessForStatusUpdate()]
         return super().get_permissions()
 
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True  
+        return self.partial_update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        order = self.get_object()
+        serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
+
 
 class OrderCountView(APIView):
     """

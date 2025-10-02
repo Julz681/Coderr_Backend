@@ -76,7 +76,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "de-de"
-TIME_ZONE = "Europe/Berlin"
+# Use UTC to match API examples with trailing 'Z' timestamps
+TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
@@ -88,13 +89,17 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
+    # Ensure decimals are rendered as numbers (e.g., 100.0) not strings
+    "COERCE_DECIMAL_TO_STRING": False,
+    # Force ISO-8601 with trailing 'Z' (UTC) in responses
+    "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S.%fZ",
 }
 
-
+# CORS: allow all origins for local development
 CORS_ALLOW_ALL_ORIGINS = True
